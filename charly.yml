@@ -1,7 +1,5 @@
-version: 2026.232.0520
 pixi:
     candy:
-        version: 2026.166.1750
         description: |
             pixi package-manager binary installed and runnable
             The pixi candy downloads the upstream pixi release binary and
