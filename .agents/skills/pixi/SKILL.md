@@ -108,6 +108,30 @@ A candy that does NOT declare the section keeps a bare `linux-64` lock, which is
 correct only while the build stage does not append — so **declare the section and
 lock for it, or leave both alone; never declare it and keep a bare-platform lock.**
 
+## Updating a `pixi.lock` — the procedure
+
+1. **Match the builder's pixi.** The lock is installed by the pixi binary the candy
+   pins (`var: PIXI_VERSION`), so regenerate with that exact release — check it with
+   `charly shell <builder> -c 'pixi --version'` — never a distro package and never
+   `releases/latest`. The lock format follows the pixi version.
+2. **Pick the platform the candy declares.**
+   - no `[system-requirements]` → `platforms = ["linux-64"]` locks for bare `linux-64`;
+   - `[system-requirements] libc = 2.39` → the lock must name `linux-64-glibc-2-39`.
+   Never mix the two: a declared section with a bare lock fails `--frozen` (measured).
+3. **Regenerate in the candy directory**, keeping the pixi home on a scratch dir so a
+   developer's own environment is not touched:
+
+   ```bash
+   PIXI_HOME=$(mktemp -d) pixi lock
+   ```
+
+4. **Verify before committing:**
+   - `grep -m1 '^- name:' pixi.lock` names the expected platform;
+   - `PIXI_HOME=$(mktemp -d) pixi install --frozen` exits 0.
+5. **Commit `pixi.toml` and `pixi.lock` together.** Never hand-edit the lock, and never
+   commit one without the other — the build's `--frozen` fails loudly when they
+   disagree, which is the intended behaviour, not a defect.
+
 ## When to Use This Skill
 
 Use when the user asks about:
