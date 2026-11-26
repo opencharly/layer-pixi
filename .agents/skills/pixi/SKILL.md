@@ -15,10 +15,10 @@ description: 'Pixi package manager binary with environment and PATH setup.
 
 ## Environment Variables
 
-| Variable | Value |
-|----------|-------|
-| `PIXI_CACHE_DIR` | `~/.cache/pixi` |
-| `RATTLER_CACHE_DIR` | `~/.cache/rattler` |
+| Variable | Value | Note |
+|----------|-------|------|
+| `PIXI_CACHE_DIR` | `~/.cache/pixi` | the package cache: `pkgs/` (one dir per package) + `uv-cache/`; a non-frozen solve adds `repodata/` |
+| `RATTLER_CACHE_DIR` | *(not set)* | measured on pixi 0.70.2 AND 0.84.2: a `--frozen` install **never creates** this root, so the build stage no longer declares it |
 
 PATH additions: `~/.pixi/bin`, `~/.pixi/envs/default/bin`
 
@@ -53,6 +53,13 @@ against charly's content-hash/CalVer model). Candy `pixi.toml` files use the
 modern `[workspace]` table (the deprecated `[project]` form emits a warning under
 pixi ≥ 0.70 and is being removed upstream).
 
+Current pin: **v0.84.2**. Measured on it: `--frozen` fetches **no repodata** (the lock
+is used, nothing is solved), and the package cache lands in `PIXI_CACHE_DIR` (`pkgs`,
+`uv-cache`). The build stage mounts that directory as a BuildKit cache
+(`--mount=type=cache,dst=/tmp/pixi-cache,uid=1000,gid=1000`); a controlled build that
+added one new package added it to `pkgs/` and a second build re-read it, and the real
+daemon held 43 package dirs / 219 MB across builds.
+
 ## Committed `pixi.lock` → `pixi install --frozen`
 
 Every pixi candy ships a committed `pixi.lock` next to its `pixi.toml`. When a
@@ -65,15 +72,41 @@ the embedded build vocabulary (`charly/charly.yml`); no per-candy config.
 
 **Regenerate the lock whenever you change `pixi.toml`** — `--frozen` fails the
 build loudly if the lock is stale (no silent skew). Generate with the builder's
-own pixi so the lock format matches what installs it, e.g.:
+own pixi so the lock format matches what installs it.
 
-```bash
-charly shell fedora-builder --tag <calver> --bind workspace="$PWD/candy/<name>" \
-  -c 'grep -q system-requirements pixi.toml || printf "\n[system-requirements]\nlibc = { family = \"glibc\", version = \"2.39\" }\n" >> pixi.toml; pixi lock'
+### `--frozen` resolves a PLATFORM, and the lock must carry it
+
+`pixi install --frozen` does not solve; it installs the platform the **manifest**
+names. A `[system-requirements] libc = 2.39` table changes that platform to
+`linux-64-glibc-2-39`, so a lock resolved for a bare `linux-64` then fails:
+
+```
+Error: the lock file has no entry for platform 'linux-64-glibc-2-39' in environment 'default'
+help: Run `pixi lock` to resolve it for this platform.
 ```
 
-The `[system-requirements]` glibc fix mirrors what the build stage injects, so
-the committed lock resolves the same manylinux wheels the build installs.
+That is a real breakage observed on pixi 0.84.2 (the openwebui image build), not a
+hypothetical. The rule:
+
+- The `[system-requirements]` table is **DEPRECATED** in 0.84.2 (it prints a warning
+  pointing at virtual packages on `platforms`) but is still accepted.
+- It is **not required**: measured on 0.84.2, a manifest with `platforms = ["linux-64"]`
+  and **no** `[system-requirements]` locks and installs `--frozen` cleanly.
+- The build stage appends the section when the manifest lacks it (so the resolved
+  packages stay compatible with the base's glibc). If a candy therefore declares it
+  itself — making the append a no-op — the lock **must** be resolved for
+  `linux-64-glibc-2-39`:
+
+```bash
+# in the candy dir, with the SAME pixi version the builder installs (0.84.2)
+PIXI_HOME=$PWD/.pixi-tmp pixi lock      # writes pixi.lock for the manifest's platform
+grep -m1 'name: linux-64' pixi.lock     # must name the platform the manifest resolves
+```
+
+A lock regenerated this way carries `linux-64-glibc-2-39` and `--frozen` matches.
+A candy that does NOT declare the section keeps a bare `linux-64` lock, which is
+correct only while the build stage does not append — so **declare the section and
+lock for it, or leave both alone; never declare it and keep a bare-platform lock.**
 
 ## When to Use This Skill
 
