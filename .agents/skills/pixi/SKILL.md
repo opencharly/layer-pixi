@@ -99,12 +99,15 @@ hypothetical. The rule:
 
 - The `[system-requirements]` table is **DEPRECATED** in 0.84.2 (it prints a warning
   pointing at virtual packages on `platforms`) but is still accepted.
-- It is **not required**: measured on 0.84.2, a manifest with `platforms = ["linux-64"]`
-  and **no** `[system-requirements]` locks and installs `--frozen` cleanly.
-- The build stage appends the section when the manifest lacks it (so the resolved
-  packages stay compatible with the base's glibc). If a candy therefore declares it
-  itself — making the append a no-op — the lock **must** be resolved for
-  `linux-64-glibc-2-39`:
+- **Whether it is required depends on the builder.** The build stage currently appends the
+  section when the manifest lacks it, which makes the effective platform
+  `linux-64-glibc-2-39`; under that behaviour a bare lock fails, so a candy declares the
+  section itself (the append becomes a no-op) and locks for the glibc platform.
+  Removing that append is tracked as `opencharly/charly#1290`; measured on 0.84.2, a
+  manifest with `platforms = ["linux-64"]` and no section locks and installs `--frozen`
+  cleanly **once the builder stops injecting it**. Until #1290 lands, declare the section.
+- If a candy declares the section itself — making the append a no-op — the lock **must** be
+  resolved for `linux-64-glibc-2-39`:
 
 ```bash
 # in the candy dir, with the SAME pixi version the builder installs (0.84.2)
@@ -113,9 +116,10 @@ grep -m1 'name: linux-64' pixi.lock     # must name the platform the manifest re
 ```
 
 A lock regenerated this way carries `linux-64-glibc-2-39` and `--frozen` matches.
-A candy that does NOT declare the section keeps a bare `linux-64` lock, which is
-correct only while the build stage does not append — so **declare the section and
-lock for it, or leave both alone; never declare it and keep a bare-platform lock.**
+The invariant is the pairing: **the lock's platform must equal the platform the manifest
+resolves under the builder in use** — with the injection (today), that means declaring the
+section and locking for `linux-64-glibc-2-39`; without it (after `opencharly/charly#1290`), a
+bare `linux-64` lock is correct. Never declare the section and keep a bare lock.
 
 ## Updating a `pixi.lock` — the procedure
 
