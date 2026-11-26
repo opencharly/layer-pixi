@@ -128,7 +128,9 @@ bare `linux-64` lock is correct. Never declare the section and keep a bare lock.
    `charly shell <builder> -c 'pixi --version'` — never a distro package and never
    `releases/latest`. The lock format follows the pixi version.
 2. **Pick the platform the candy declares.**
-   - no `[system-requirements]` → `platforms = ["linux-64"]` locks for bare `linux-64`;
+   - no `[system-requirements]` → `platforms = ["linux-64"]` locks for bare `linux-64` — **correct only
+     after `opencharly/charly#1290`** removes the builder's injection; today the builder appends the
+     section, so declare it and lock for `linux-64-glibc-2-39`;
    - `[system-requirements] libc = 2.39` → the lock must name `linux-64-glibc-2-39`.
    Never mix the two: a declared section with a bare lock fails `--frozen` (measured).
 3. **Regenerate in the candy directory**, keeping the pixi home on a scratch dir so a
