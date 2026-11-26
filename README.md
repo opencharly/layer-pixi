@@ -13,7 +13,7 @@ images.
 |---|---|
 | Layer / candy | `pixi` |
 | Binary | `/usr/local/bin/pixi` |
-| Version | pinned `v0.70.2` (`PIXI_VERSION` var) |
+| Version | pinned `v0.84.2` (`PIXI_VERSION` var) |
 | Install | `download:` the musl release tarball for `${BUILD_ARCH}`, extract to `/usr/local/bin` |
 | PATH additions | `~/.pixi/bin` |
 | Service / port | none |
@@ -33,7 +33,7 @@ my-dev-box:
 Then, inside the built image (or on a dev host):
 
 ```bash
-pixi --version          # reports the pinned 0.70.2
+pixi --version          # reports the pinned 0.84.2
 pixi install            # materialize the environment from pixi.toml
 ```
 

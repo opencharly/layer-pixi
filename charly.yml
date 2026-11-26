@@ -19,7 +19,7 @@ pixi:
             # Pinned to the latest pixi release. Was an unpinned `releases/latest`
             # URL, which made the SAME candy version install a different pixi over
             # time (non-reproducible). Bump deliberately to adopt a newer pixi.
-            PIXI_VERSION: v0.70.2
+            PIXI_VERSION: v0.84.2
         plan:
             - run: download=https://github.com/prefix-dev/pixi/releases/download/${PIXI_VERSION}/pixi-${BUILD_ARCH}-unknown-linux-musl.tar.gz
               download: "https://github.com/prefix-dev/pixi/releases/download/${PIXI_VERSION}/pixi-${BUILD_ARCH}-unknown-linux-musl.tar.gz"
@@ -30,10 +30,10 @@ pixi:
               file:
                 file: /usr/local/bin/pixi
                 exists: true
-            - check: running pixi --version reports the pinned v0.70.2 release
+            - check: running pixi --version reports the pinned v0.84.2 release
               exit_status: 0
               stdout:
-                - matches: "0\\.70\\.2"
+                - matches: "0\\.84\\.2"
               command: /usr/local/bin/pixi --version
             - check: command=/usr/local/bin/pixi --version
               id: pixi-version
