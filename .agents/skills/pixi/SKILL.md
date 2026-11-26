@@ -60,7 +60,16 @@ is used, nothing is solved), and the package cache lands in `PIXI_CACHE_DIR` (`p
 added one new package added it to `pkgs/` and a second build re-read it, and the real
 daemon held 43 package dirs / 219 MB across builds.
 
-## Committed `pixi.lock` → `pixi install --frozen`
+## Committed `pixi.lock` → `pixi install --frozen` (the PREFERRED path)
+
+**Committing `pixi.lock` and building with `pixi install --frozen` is the preferred, and the expected,
+way to build a pixi candy.** The lock makes the build deterministic and replays it with no SAT solve over
+the conda + PyPI indexes.
+
+The fallback is supported but NOT preferred: a `pixi.toml` candy with no lock still builds via
+`pixi install` (a full solve on every cache miss), and the `install_command` map keeps that entry
+(`pixi.toml: pixi install`) alongside `pixi.toml+lock: pixi install --frozen`. Treat a missing lock as a
+gap to close, not as an equivalent option.
 
 Every pixi candy ships a committed `pixi.lock` next to its `pixi.toml`. When a
 lock is present, generation auto-flips the build stage from `pixi install` (a
