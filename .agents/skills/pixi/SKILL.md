@@ -57,8 +57,9 @@ Current pin: **v0.84.2**. Measured on it: `--frozen` fetches **no repodata** (th
 is used, nothing is solved), and the package cache lands in `PIXI_CACHE_DIR` (`pkgs`,
 `uv-cache`). The build stage mounts that directory as a BuildKit cache
 (`--mount=type=cache,dst=/tmp/pixi-cache,uid=1000,gid=1000`); a controlled build that
-added one new package added it to `pkgs/` and a second build re-read it, and the real
-daemon held 43 package dirs / 219 MB across builds.
+added one new package (`tzdata`) put it in `pkgs/` and a second build re-read it (`SIZE=4.4M`),
+so newly downloaded packages are retained across builds. The daemon prunes that cache by its own
+policy, so no fixed directory/byte count is stated here.
 
 ## Committed `pixi.lock` → `pixi install --frozen` (the PREFERRED path)
 
